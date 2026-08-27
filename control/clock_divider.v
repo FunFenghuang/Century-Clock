@@ -4,7 +4,6 @@ module clock_divider #(parameter clk_f = 50000000) (
     input  wire edit_enable,
     output reg  tick_100hz,
     output reg  tick_1hz,
-    output reg  tick_1min,
     output reg  tick_blink
 );
 
@@ -12,12 +11,10 @@ module clock_divider #(parameter clk_f = 50000000) (
     // Công thức: giới hạn = (Tần số vào / Tần số ra) - 1
     localparam MAX_100HZ = (clk_f / 100) - 1; // Tính từ 50MHz
     localparam MAX_1HZ   = 100 - 1;           // Đếm 100 nhịp của 100Hz = 1 giây
-    localparam MAX_1MIN  = 60 - 1;            // Đếm 60 nhịp của 1Hz = 1 phút
     localparam MAX_2HZ   = 50 - 1;            // Đếm 50 nhịp cuả 100Hz
 
     reg [18:0] counter_100hz;
     reg [6:0]  counter_1hz;
-    reg [5:0]  counter_1min;
     reg [5:0]  counter_blink;
 
     // TẦNG 1: Tạo xung tick_100hz
@@ -76,27 +73,4 @@ module clock_divider #(parameter clk_f = 50000000) (
         end 
     end
 
-    // TẦNG 4: Tạo xung tick_1min
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            counter_1min <= 0;
-            tick_1min    <= 0;
-        end else if (edit_enable) begin
-            counter_1min <= 0;
-            tick_1min    <= 0;
-        end else begin
-            tick_1min <= 0; 
-            
-            if (tick_1hz) begin 
-                if (counter_1min == MAX_1MIN) begin 
-                    counter_1min <= 0;
-                    tick_1min    <= 1;
-                end else begin 
-                    counter_1min <= counter_1min + 1;                
-                end 
-            end
-        end
-    end
-    
 endmodule
