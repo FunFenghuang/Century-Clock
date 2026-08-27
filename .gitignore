@@ -23,3 +23,5 @@ greybox_tmp/
 # Bỏ qua các file tạm của hệ điều hành
 .DS_Store
 Thumbs.db
+# Bỏ qua các file backup của trình soạn thảo
+*.bak
