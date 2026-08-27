@@ -1,0 +1,25 @@
+# Bỏ qua thư mục chứa file đầu ra và mô phỏng
+output_files/
+simulation/
+db/
+incremental_db/
+greybox_tmp/
+
+# Bỏ qua các file báo cáo phân tích thời gian và tổng hợp
+*.rpt
+*.summary
+*.sft
+*.done
+*.pin
+*.jdi
+
+# Bỏ qua các file cấu hình và netlist sinh ra tự động
+*.vo
+*.vho
+*.sof
+*.pof
+*.qws
+
+# Bỏ qua các file tạm của hệ điều hành
+.DS_Store
+Thumbs.db
