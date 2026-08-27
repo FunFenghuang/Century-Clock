@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ khối - Display Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #ffffff;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            overflow: auto;
+        }
+
+        .diagram-container {
+            position: relative;
+            width: 1600px;
+            margin: 20px auto;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #555;
+            margin: 30px 0 10px 0;
+            padding: 8px 20px;
+            background: linear-gradient(90deg, transparent, #f0f0f0, transparent);
+        }
+
+        /* ===== MODULE BLOCKS ===== */
+        .module-block {
+            position: absolute;
+            border: 2px solid #b8860b;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #fff8dc, #ffeebb);
+            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+            z-index: 10;
+        }
+
+        .module-block.blue {
+            background: linear-gradient(135deg, #d6e8f7, #b0cfe0);
+            border-color: #6a9ec0;
+        }
+
+        .module-block.green {
+            background: linear-gradient(135deg, #d4edda, #b7dfbf);
+            border-color: #28a745;
+        }
+
+        .module-block.main-wrapper {
+            background: linear-gradient(135deg, #fff8dc, #fdf5e6);
+            border: 2px dashed #b8860b;
+            z-index: 1;
+        }
+
+        .module-name {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .module-name small {
+            display: block;
+            font-size: 11px;
+            font-weight: normal;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* ===== SIGNAL LABELS ===== */
+        .signal-label {
+            position: absolute;
+            font-size: 11px;
+            color: #333;
+            font-family: 'Consolas', 'Courier New', monospace;
+            white-space: nowrap;
+            z-index: 20;
+            background: #fff;
+            padding: 0 3px;
+        }
+
+        .signal-label.bus {
+            color: #0055aa;
+            font-weight: bold;
+        }
+
+        .signal-label.port {
+            color: #8b4513;
+            font-size: 10px;
+        }
+
+        /* ===== SVG LINES ===== */
+        svg.wires {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .wire {
+            stroke: #333;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .wire.bus-line {
+            stroke: #0055aa;
+            stroke-width: 2.5;
+        }
+
+        .wire.dashed {
+            stroke-dasharray: 6, 4;
+        }
+
+        .arrow-head {
+            fill: #333;
+        }
+
+        .arrow-head.bus {
+            fill: #0055aa;
+        }
+
+        /* ===== BCD x8 GROUP ===== */
+        .bcd-group {
+            position: absolute;
+            border: 2px dashed #6a9ec0;
+            border-radius: 10px;
+            background: rgba(214, 232, 247, 0.3);
+            z-index: 2;
+        }
+
+        .bcd-label {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            padding: 0 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #6a9ec0;
+        }
+
+        /* ===== INPUT/OUTPUT MARKERS ===== */
+        .io-marker {
+            position: absolute;
+            font-size: 11px;
+            font-family: 'Consolas', monospace;
+            color: #555;
+            z-index: 20;
+        }
+
+        .io-marker::before {
+            content: '';
+            display: inline-block;
+            width: 0;
+            height: 0;
+        }
+
+        .section-title {
+            position: absolute;
+            font-size: 13px;
+            font-weight: bold;
+            color: #888;
+            z-index: 20;
+        }
+
+        /* ===== FLOWCHART ELEMENTS ===== */
+        .fc-container {
+            position: relative;
+            width: 1600px;
+            margin: 10px auto;
+        }
+
+        /* Diamond (condition) */
+        .fc-diamond {
+            position: absolute;
+            z-index: 10;
+        }
+
+        .fc-diamond-inner {
+            width: 130px;
+            height: 80px;
+            background: linear-gradient(135deg, #d5e8d4, #b8d8b0);
+            border: 2px solid #82b366;
+            transform: rotate(45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .fc-diamond-text {
+            transform: rotate(-45deg);
+            font-size: 10px;
+            font-family: 'Consolas', monospace;
+            text-align: center;
+            color: #333;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        /* Rectangle (action) */
+        .fc-action {
+            position: absolute;
+            border: 2px solid #d79b00;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #fff2cc, #ffe6a0);
+            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 11px;
+            font-family: 'Consolas', monospace;
+            color: #333;
+            padding: 4px;
+            z-index: 10;
+        }
+
+        /* Rounded rectangle (start/event) */
+        .fc-start {
+            position: absolute;
+            border: 2px solid #d81b60;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+            box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 11px;
+            font-family: 'Consolas', monospace;
+            color: #333;
+            padding: 6px;
+            z-index: 10;
+        }
+
+        /* Label for flowchart edges */
+        .fc-edge-label {
+            position: absolute;
+            font-size: 10px;
+            font-weight: bold;
+            font-family: 'Consolas', monospace;
+            z-index: 20;
+            white-space: nowrap;
+            background: #fff;
+            padding: 0 3px;
+        }
+
+        .fc-edge-label.yes {
+            color: #2e7d32;
+        }
+
+        .fc-edge-label.no {
+            color: #c62828;
+        }
+
+        /* Separator */
+        .flow-separator {
+            width: 1560px;
+            margin: 40px auto 20px auto;
+            border: none;
+            border-top: 3px dashed #ccc;
+        }
+
+        .flow-section-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #444;
+            padding: 10px;
+            margin: 0 auto;
+            background: linear-gradient(90deg, transparent 10%, #e8f0fe 30%, #e8f0fe 70%, transparent 90%);
+            width: 1560px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="title">SƠ ĐỒ KHỐI - DISPLAY CONTROLLER</div>
+
+    <!-- ================================================================ -->
+    <!--  PHẦN 1: SƠ ĐỒ KHỐI TỔNG QUÁT (GIỮ NGUYÊN)                     -->
+    <!-- ================================================================ -->
+    <div class="diagram-container" style="height:1100px;">
+
+        <!-- ============================================ -->
+        <!-- MAIN WRAPPER: display_controller -->
+        <!-- ============================================ -->
+        <div class="module-block main-wrapper" style="left:60px; top:20px; width:1500px; height:1050px;">
+        </div>
+        <div class="section-title" style="left:80px; top:30px;">display_controller</div>
+
+        <!-- ============================================ -->
+        <!-- MODULE 1: blink_selector (standalone, top-left) -->
+        <!-- ============================================ -->
+        <div class="module-block" style="left:100px; top:100px; width:200px; height:80px;">
+            <div class="module-name">blink_selector<small>Tạo mặt nạ nhấp nháy</small></div>
+        </div>
+
+        <!-- blink_selector input signals -->
+        <div class="signal-label" style="left:20px; top:100px;">clk_50MHz →</div>
+        <div class="signal-label" style="left:20px; top:118px;">rst_n →</div>
+        <div class="signal-label" style="left:20px; top:136px;">tick_blink →</div>
+        <div class="signal-label" style="left:20px; top:154px;">mode →</div>
+        <div class="signal-label" style="left:20px; top:172px;">[2:0] edit_selected →</div>
+        <div class="signal-label bus" style="left:305px; top:130px;">→ [7:0] blink_mask</div>
+
+
+        <!-- ============================================ -->
+        <!-- MODULE 2: digit_selector -->
+        <!-- ============================================ -->
+        <div class="module-block" style="left:100px; top:340px; width:220px; height:280px;">
+            <div class="module-name">digit_selector<small>Chọn digit hiển thị<br>theo mode</small></div>
+        </div>
+
+        <!-- digit_selector input signals (left side) -->
+        <div class="signal-label" style="left:10px; top:340px;">[3:0] sec_ones →</div>
+        <div class="signal-label" style="left:10px; top:358px;">[3:0] sec_tens →</div>
+        <div class="signal-label" style="left:10px; top:380px;">[3:0] min_ones →</div>
+        <div class="signal-label" style="left:10px; top:398px;">[3:0] min_tens →</div>
+        <div class="signal-label" style="left:10px; top:420px;">[3:0] hr_ones →</div>
+        <div class="signal-label" style="left:10px; top:438px;">[3:0] hr_tens →</div>
+        <div class="signal-label" style="left:10px; top:462px;">[3:0] day_ones →</div>
+        <div class="signal-label" style="left:10px; top:480px;">[3:0] day_tens →</div>
+        <div class="signal-label" style="left:10px; top:502px;">[3:0] mon_ones →</div>
+        <div class="signal-label" style="left:10px; top:520px;">[3:0] mon_tens →</div>
+        <div class="signal-label" style="left:10px; top:542px;">[3:0] yr_ones →</div>
+        <div class="signal-label" style="left:10px; top:560px;">[3:0] yr_tens →</div>
+        <div class="signal-label" style="left:10px; top:578px;">[3:0] yr_hundreds →</div>
+        <div class="signal-label" style="left:10px; top:596px;">[3:0] yr_thousands →</div>
+
+        <!-- display_mode input (bottom of digit_selector) -->
+        <div class="signal-label" style="left:150px; top:625px;">↑ mode</div>
+
+        <!-- digit_selector output signals (right side) -->
+        <div class="signal-label bus" style="left:325px; top:355px;">→ [3:0] dig7</div>
+        <div class="signal-label bus" style="left:325px; top:378px;">→ [3:0] dig6</div>
+        <div class="signal-label bus" style="left:325px; top:401px;">→ [3:0] dig5</div>
+        <div class="signal-label bus" style="left:325px; top:424px;">→ [3:0] dig4</div>
+        <div class="signal-label bus" style="left:325px; top:447px;">→ [3:0] dig3</div>
+        <div class="signal-label bus" style="left:325px; top:470px;">→ [3:0] dig2</div>
+        <div class="signal-label bus" style="left:325px; top:493px;">→ [3:0] dig1</div>
+        <div class="signal-label bus" style="left:325px; top:516px;">→ [3:0] dig0</div>
+
+
+        <!-- ============================================ -->
+        <!-- MODULE 3: bcd_to_7seg x8 (group) -->
+        <!-- ============================================ -->
+        <div class="bcd-group" style="left:470px; top:310px; width:320px; height:340px;">
+            <div class="bcd-label">bcd_to_7seg × 8 (giải mã BCD → 7 đoạn)</div>
+        </div>
+
+        <!-- 8 individual bcd_to_7seg blocks -->
+        <div class="module-block blue" style="left:510px; top:325px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #7
+        </div>
+        <div class="module-block blue" style="left:510px; top:362px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #6
+        </div>
+        <div class="module-block blue" style="left:510px; top:399px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #5
+        </div>
+        <div class="module-block blue" style="left:510px; top:436px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #4
+        </div>
+        <div class="module-block blue" style="left:510px; top:473px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #3
+        </div>
+        <div class="module-block blue" style="left:510px; top:510px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #2
+        </div>
+        <div class="module-block blue" style="left:510px; top:547px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #1
+        </div>
+        <div class="module-block blue" style="left:510px; top:584px; width:140px; height:32px; font-size:11px;">
+            bcd_to_7seg #0
+        </div>
+
+        <!-- bcd_to_7seg input labels -->
+        <div class="signal-label bus" style="left:440px; top:330px;">[3:0]→</div>
+        <div class="signal-label bus" style="left:440px; top:367px;">[3:0]→</div>
+        <div class="signal-label bus" style="left:440px; top:404px;">[3:0]→</div>
+        <div class="signal-label bus" style="left:440px; top:441px;">[3:0]→</div>
+        <div class="signal-label bus" style="left:440px; top:478px;">[3:0]→</div>
+        <div class="signal-label bus" style="left:440px; top:515px;">[3:0]→</div>
+        <div class="signal-label bus" style="left:440px; top:552px;">[3:0]→</div>
+        <div class="signal-label bus" style="left:440px; top:589px;">[3:0]→</div>
+
+        <!-- bcd_to_7seg output labels -->
+        <div class="signal-label bus" style="left:658px; top:330px;">→[6:0] seg_raw7</div>
+        <div class="signal-label bus" style="left:658px; top:367px;">→[6:0] seg_raw6</div>
+        <div class="signal-label bus" style="left:658px; top:404px;">→[6:0] seg_raw5</div>
+        <div class="signal-label bus" style="left:658px; top:441px;">→[6:0] seg_raw4</div>
+        <div class="signal-label bus" style="left:658px; top:478px;">→[6:0] seg_raw3</div>
+        <div class="signal-label bus" style="left:658px; top:515px;">→[6:0] seg_raw2</div>
+        <div class="signal-label bus" style="left:658px; top:552px;">→[6:0] seg_raw1</div>
+        <div class="signal-label bus" style="left:658px; top:589px;">→[6:0] seg_raw0</div>
+
+
+        <!-- ============================================ -->
+        <!-- MODULE 4: blink_mask_applier -->
+        <!-- ============================================ -->
+        <div class="module-block" style="left:870px; top:340px; width:240px; height:280px;">
+            <div class="module-name">blink_mask_applier<small>Áp dụng mặt nạ nhấp nháy<br>lên tín hiệu 7 đoạn</small>
+            </div>
+        </div>
+
+        <!-- blink_mask_applier input seg signals (left side) -->
+        <div class="signal-label bus" style="left:808px; top:355px;">[6:0]→</div>
+        <div class="signal-label bus" style="left:808px; top:378px;">[6:0]→</div>
+        <div class="signal-label bus" style="left:808px; top:401px;">[6:0]→</div>
+        <div class="signal-label bus" style="left:808px; top:424px;">[6:0]→</div>
+        <div class="signal-label bus" style="left:808px; top:447px;">[6:0]→</div>
+        <div class="signal-label bus" style="left:808px; top:470px;">[6:0]→</div>
+        <div class="signal-label bus" style="left:808px; top:493px;">[6:0]→</div>
+        <div class="signal-label bus" style="left:808px; top:516px;">[6:0]→</div>
+
+        <!-- blink_mask input (top of blink_mask_applier) -->
+        <div class="signal-label bus" style="left:940px; top:310px;">↓ [7:0] blink_mask</div>
+
+        <!-- blink_mask_applier output signals (right side) -->
+        <div class="signal-label bus" style="left:1118px; top:355px;">→ [6:0] SEG7</div>
+        <div class="signal-label bus" style="left:1118px; top:378px;">→ [6:0] SEG6</div>
+        <div class="signal-label bus" style="left:1118px; top:401px;">→ [6:0] SEG5</div>
+        <div class="signal-label bus" style="left:1118px; top:424px;">→ [6:0] SEG4</div>
+        <div class="signal-label bus" style="left:1118px; top:447px;">→ [6:0] SEG3</div>
+        <div class="signal-label bus" style="left:1118px; top:470px;">→ [6:0] SEG2</div>
+        <div class="signal-label bus" style="left:1118px; top:493px;">→ [6:0] SEG1</div>
+        <div class="signal-label bus" style="left:1118px; top:516px;">→ [6:0] SEG0</div>
+
+
+        <!-- ============================================ -->
+        <!-- OUTPUT LED DISPLAY -->
+        <!-- ============================================ -->
+        <div class="module-block"
+            style="left:1280px; top:340px; width:200px; height:280px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-color: #4caf50;">
+            <div class="module-name" style="color: #2e7d32;">🔢 LED 7 đoạn<small>SEG7 ... SEG0<br>(8 LED hiển
+                    thị)</small></div>
+        </div>
+
+
+        <!-- ============================================ -->
+        <!-- SVG WIRES -->
+        <!-- ============================================ -->
+        <svg class="wires">
+            <defs>
+                <marker id="arrowBlack" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" class="arrow-head" />
+                </marker>
+                <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" class="arrow-head bus" />
+                </marker>
+            </defs>
+
+            <!-- blink_selector -> blink_mask_applier (blink_mask) -->
+            <!-- From blink_selector right (300,140) to blink_mask_applier top (990,340) -->
+            <polyline points="300,140 460,140 460,270 990,270 990,340" class="wire bus-line"
+                marker-end="url(#arrowBlue)" />
+
+            <!-- digit_selector -> bcd_to_7seg connections (8 lines) -->
+            <!-- dig7: from (320,360) to (510,341) -->
+            <line x1="320" y1="360" x2="510" y2="341" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- dig6 -->
+            <line x1="320" y1="383" x2="510" y2="378" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- dig5 -->
+            <line x1="320" y1="406" x2="510" y2="415" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- dig4 -->
+            <line x1="320" y1="429" x2="510" y2="452" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- dig3 -->
+            <line x1="320" y1="452" x2="510" y2="489" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- dig2 -->
+            <line x1="320" y1="475" x2="510" y2="526" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- dig1 -->
+            <line x1="320" y1="498" x2="510" y2="563" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- dig0 -->
+            <line x1="320" y1="521" x2="510" y2="600" class="wire bus-line" marker-end="url(#arrowBlue)" />
+
+            <!-- bcd_to_7seg -> blink_mask_applier connections (8 lines) -->
+            <!-- seg_raw7 -->
+            <line x1="650" y1="341" x2="870" y2="362" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- seg_raw6 -->
+            <line x1="650" y1="378" x2="870" y2="385" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- seg_raw5 -->
+            <line x1="650" y1="415" x2="870" y2="408" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- seg_raw4 -->
+            <line x1="650" y1="452" x2="870" y2="431" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- seg_raw3 -->
+            <line x1="650" y1="489" x2="870" y2="454" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- seg_raw2 -->
+            <line x1="650" y1="526" x2="870" y2="477" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- seg_raw1 -->
+            <line x1="650" y1="563" x2="870" y2="500" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <!-- seg_raw0 -->
+            <line x1="650" y1="600" x2="870" y2="523" class="wire bus-line" marker-end="url(#arrowBlue)" />
+
+            <!-- blink_mask_applier -> LED outputs -->
+            <line x1="1110" y1="362" x2="1280" y2="370" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <line x1="1110" y1="385" x2="1280" y2="400" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <line x1="1110" y1="408" x2="1280" y2="430" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <line x1="1110" y1="431" x2="1280" y2="460" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <line x1="1110" y1="454" x2="1280" y2="490" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <line x1="1110" y1="477" x2="1280" y2="520" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <line x1="1110" y1="500" x2="1280" y2="550" class="wire bus-line" marker-end="url(#arrowBlue)" />
+            <line x1="1110" y1="523" x2="1280" y2="580" class="wire bus-line" marker-end="url(#arrowBlue)" />
+        </svg>
+
+
+        <!-- ============================================ -->
+        <!-- DETAIL BOX: blink_selector (expanded) -->
+        <!-- ============================================ -->
+        <div class="module-block main-wrapper" style="left:80px; top:700px; width:700px; height:310px;">
+        </div>
+        <div class="section-title" style="left:300px; top:710px;">blink_selector (chi tiết)</div>
+
+        <!-- Internal: blink state toggle -->
+        <div class="module-block blue" style="left:200px; top:780px; width:180px; height:60px; font-size:12px;">
+            <div class="module-name" style="font-size:12px;">Đảo trạng thái<br>nhấp nháy<small>blink_state (toggle mỗi
+                    tick_blink)</small></div>
+        </div>
+
+        <!-- Internal: mask generator -->
+        <div class="module-block blue" style="left:440px; top:780px; width:200px; height:60px; font-size:12px;">
+            <div class="module-name" style="font-size:12px;">Tạo mặt nạ<br>blink_mask<small>dựa trên edit_selected<br>&
+                    blink_state</small></div>
+        </div>
+
+        <!-- Detail box input signals -->
+        <div class="signal-label" style="left:95px; top:760px;">clk_50MHz →</div>
+        <div class="signal-label" style="left:95px; top:780px;">rst_n →</div>
+        <div class="signal-label" style="left:95px; top:800px;">tick_blink →</div>
+        <div class="signal-label" style="left:95px; top:850px;">mode →</div>
+        <div class="signal-label" style="left:95px; top:870px;">[2:0] edit_selected →</div>
+
+        <!-- Internal wire: blink_state -> mask generator -->
+        <div class="signal-label" style="left:388px; top:790px;">blink_state</div>
+
+        <!-- Detail box output -->
+        <div class="signal-label bus" style="left:648px; top:800px;">→ [7:0] blink_mask</div>
+
+        <!-- Detail SVG -->
+        <svg class="wires">
+            <!-- blink state toggle -> mask generator -->
+            <line x1="380" y1="810" x2="440" y2="810" class="wire" marker-end="url(#arrowBlack)" />
+            <!-- selected_field -> mask generator -->
+            <polyline points="200,870 420,870 420,830 440,830" class="wire" marker-end="url(#arrowBlack)" />
+        </svg>
+
+
+        <!-- ============================================ -->
+        <!-- DETAIL BOX: digit_selector (expanded) -->
+        <!-- ============================================ -->
+        <div class="module-block main-wrapper" style="left:820px; top:700px; width:700px; height:340px;">
+        </div>
+        <div class="section-title" style="left:1060px; top:710px;">digit_selector (chi tiết)</div>
+
+        <!-- Internal: MUX -->
+        <div class="module-block blue" style="left:1020px; top:770px; width:200px; height:80px; font-size:12px;">
+            <div class="module-name" style="font-size:13px;">MUX 2:1<small>mode = 0 → TIME<br>mode = 1 → DATE</small>
+            </div>
+        </div>
+
+        <!-- TIME inputs -->
+        <div class="signal-label" style="left:838px; top:740px; font-weight:bold; color:#c62828;">Chế độ TIME (mode=0):
+        </div>
+        <div class="signal-label" style="left:838px; top:756px;">hr_tens → dig7</div>
+        <div class="signal-label" style="left:838px; top:772px;">hr_ones → dig6</div>
+        <div class="signal-label" style="left:838px; top:788px;">min_tens → dig5</div>
+        <div class="signal-label" style="left:838px; top:804px;">min_ones → dig4</div>
+        <div class="signal-label" style="left:838px; top:820px;">sec_tens → dig3</div>
+        <div class="signal-label" style="left:838px; top:836px;">sec_ones → dig2</div>
+        <div class="signal-label" style="left:838px; top:852px;">off → dig1</div>
+        <div class="signal-label" style="left:838px; top:868px;">off → dig0</div>
+
+        <!-- DATE inputs -->
+        <div class="signal-label" style="left:838px; top:896px; font-weight:bold; color:#1565c0;">Chế độ DATE (mode=1):
+        </div>
+        <div class="signal-label" style="left:838px; top:912px;">day_tens → dig7</div>
+        <div class="signal-label" style="left:838px; top:928px;">day_ones → dig6</div>
+        <div class="signal-label" style="left:838px; top:944px;">mon_tens → dig5</div>
+        <div class="signal-label" style="left:838px; top:960px;">mon_ones → dig4</div>
+        <div class="signal-label" style="left:838px; top:976px;">yr_thousands → dig3</div>
+        <div class="signal-label" style="left:838px; top:992px;">yr_hundreds → dig2</div>
+        <div class="signal-label" style="left:838px; top:1008px;">yr_tens → dig1</div>
+        <div class="signal-label" style="left:838px; top:1024px;">yr_ones → dig0</div>
+
+        <!-- MUX select -->
+        <div class="signal-label" style="left:1090px; top:858px;">↑ mode</div>
+
+        <!-- Output from MUX -->
+        <div class="signal-label bus" style="left:1228px; top:775px;">→ [3:0] dig7</div>
+        <div class="signal-label bus" style="left:1228px; top:793px;">→ [3:0] dig6</div>
+        <div class="signal-label bus" style="left:1228px; top:811px;">→ [3:0] dig5</div>
+        <div class="signal-label bus" style="left:1228px; top:829px;">→ [3:0] dig4</div>
+        <div class="signal-label bus" style="left:1228px; top:847px;">→ [3:0] dig3</div>
+        <div class="signal-label bus" style="left:1228px; top:865px;">→ [3:0] dig2</div>
+        <div class="signal-label bus" style="left:1228px; top:883px;">→ [3:0] dig1</div>
+        <div class="signal-label bus" style="left:1228px; top:901px;">→ [3:0] dig0</div>
+
+        <!-- SVG for detail wires -->
+        <svg class="wires">
+            <!-- TIME group -> MUX -->
+            <line x1="990" y1="790" x2="1020" y2="790" class="wire" marker-end="url(#arrowBlack)" />
+            <!-- DATE group -> MUX -->
+            <polyline points="990,940 1005,940 1005,830 1020,830" class="wire" marker-end="url(#arrowBlack)" />
+        </svg>
+
+
+        <!-- ============================================ -->
+        <!-- FLOW STEP LABELS -->
+        <!-- ============================================ -->
+        <div
+            style="position:absolute; left:100px; top:275px; background:#ffeeba; border:1px solid #f0ad4e; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:bold; color:#856404; z-index:20;">
+            BƯỚC 1: Chọn digit
+        </div>
+        <div
+            style="position:absolute; left:530px; top:275px; background:#d1ecf1; border:1px solid #bee5eb; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:bold; color:#0c5460; z-index:20;">
+            BƯỚC 2: Giải mã BCD → 7 đoạn
+        </div>
+        <div
+            style="position:absolute; left:910px; top:275px; background:#ffeeba; border:1px solid #f0ad4e; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:bold; color:#856404; z-index:20;">
+            BƯỚC 3: Áp dụng nhấp nháy
+        </div>
+        <div
+            style="position:absolute; left:1310px; top:275px; background:#d4edda; border:1px solid #c3e6cb; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:bold; color:#155724; z-index:20;">
+            OUTPUT
+        </div>
+
+    </div>
+
+
+    <!-- ================================================================ -->
+    <!--  PHẦN 2: LƯU ĐỒ GIẢI THUẬT CHO TỪNG MODULE                     -->
+    <!-- ================================================================ -->
+
+    <hr class="flow-separator">
+
+    <!-- ============================================================== -->
+    <!--  FLOWCHART 1: display_mode_manager                             -->
+    <!-- ============================================================== -->
+    <div class="flow-section-title">LƯU ĐỒ GIẢI THUẬT — display_mode_manager.v</div>
+    <div class="fc-container" style="height:520px;">
+
+        <!-- Start event -->
+        <div class="fc-start" style="left:620px; top:20px; width:260px; height:45px;">
+            cạnh lên clk_50MHz<br>hoặc cạnh xuống rst_n
+        </div>
+
+        <!-- Decision: rst_n == 0? -->
+        <div class="fc-diamond" style="left:685px; top:110px;">
+            <div class="fc-diamond-inner">
+                <div class="fc-diamond-text">rst_n == 0 ?</div>
+            </div>
+        </div>
+        <div class="fc-edge-label yes" style="left:640px; top:145px;">ĐÚNG</div>
+        <div class="fc-edge-label no" style="left:830px; top:145px;">SAI</div>
+
+        <!-- Action: mode <= 0 (TIME) -->
+        <div class="fc-action" style="left:470px; top:200px; width:160px; height:40px;">
+            mode ≤ 0 (TIME)
+        </div>
+
+        <!-- Decision: tick_1min? -->
+        <div class="fc-diamond" style="left:900px; top:200px;">
+            <div class="fc-diamond-inner">
+                <div class="fc-diamond-text">tick_1min ?</div>
+            </div>
+        </div>
+        <div class="fc-edge-label yes" style="left:870px; top:245px;">ĐÚNG</div>
+        <div class="fc-edge-label no" style="left:1050px; top:245px;">SAI</div>
+
+        <!-- Action: mode <= ~mode -->
+        <div class="fc-action" style="left:790px; top:320px; width:170px; height:40px;">
+            mode ≤ ~mode<br>(đảo mode)
+        </div>
+
+        <!-- Action: giữ nguyên -->
+        <div class="fc-action" style="left:1060px; top:320px; width:140px; height:40px;">
+            giữ nguyên mode
+        </div>
+
+        <!-- SVG wires -->
+        <svg class="wires">
+            <defs>
+                <marker id="fcArrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" fill="#333" />
+                </marker>
+            </defs>
+            <!-- Start -> rst_n check -->
+            <line x1="750" y1="65" x2="750" y2="118" class="wire" marker-end="url(#fcArrow)" />
+            <!-- rst_n == 0 -> YES: mode <= 0 -->
+            <polyline points="693,150 550,150 550,200" class="wire" marker-end="url(#fcArrow)" />
+            <!-- rst_n == 0 -> NO: tick_1min -->
+            <polyline points="815,150 960,150 960,208" class="wire" marker-end="url(#fcArrow)" />
+            <!-- tick_1min -> YES: đảo mode -->
+            <polyline points="908,250 875,290 875,320" class="wire" marker-end="url(#fcArrow)" />
+            <!-- tick_1min -> NO: giữ nguyên -->
+            <polyline points="1030,250 1130,290 1130,320" class="wire" marker-end="url(#fcArrow)" />
+        </svg>
+    </div>
+
+
+    <hr class="flow-separator">
+
+    <!-- ============================================================== -->
+    <!--  FLOWCHART 2: blink_selector                                   -->
+    <!-- ============================================================== -->
+    <div class="flow-section-title">LƯU ĐỒ GIẢI THUẬT — blink_selector.v</div>
+    <div class="fc-container" style="height:780px;">
+
+        <!-- Start event -->
+        <div class="fc-start" style="left:600px; top:20px; width:280px; height:45px;">
+            cạnh lên clk_50MHz<br>hoặc cạnh xuống rst_n
+        </div>
+
+        <!-- Decision: rst_n == 0? -->
+        <div class="fc-diamond" style="left:680px; top:110px;">
+            <div class="fc-diamond-inner">
+                <div class="fc-diamond-text">rst_n == 0 ?</div>
+            </div>
+        </div>
+        <div class="fc-edge-label yes" style="left:630px; top:145px;">ĐÚNG</div>
+        <div class="fc-edge-label no" style="left:830px; top:145px;">SAI</div>
+
+        <!-- Action: blink_state <= 1 -->
+        <div class="fc-action" style="left:440px; top:180px; width:170px; height:40px;">
+            blink_state ≤ 1
+        </div>
+
+        <!-- Decision: tick_blink? -->
+        <div class="fc-diamond" style="left:880px; top:180px;">
+            <div class="fc-diamond-inner">
+                <div class="fc-diamond-text">tick_blink ?</div>
+            </div>
+        </div>
+        <div class="fc-edge-label yes" style="left:855px; top:220px;">ĐÚNG</div>
+        <div class="fc-edge-label no" style="left:1025px; top:220px;">SAI</div>
+
+        <!-- Action: blink_state <= ~blink_state -->
+        <div class="fc-action" style="left:820px; top:300px; width:200px; height:40px;">
+            blink_state ≤ ~blink_state
+        </div>
+
+        <!-- === Combinational logic: tạo blink_mask === -->
+        <div class="fc-start"
+            style="left:220px; top:410px; width:200px; height:35px; border-color:#1565c0; background:linear-gradient(135deg,#e3f2fd,#bbdefb);">
+            Tổ hợp: tạo blink_mask
+        </div>
+
+        <!-- Action: blink_mask = 8'b11111111 -->
+        <div class="fc-action" style="left:200px; top:470px; width:240px; height:35px;">
+            blink_mask = 8'b11111111 (mặc định sáng)
+        </div>
+
+        <!-- Decision: edit_selected != NONE && blink_state == 0? -->
+        <div class="fc-diamond" style="left:260px; top:540px;">
+            <div class="fc-diamond-inner" style="width:150px; height:90px;">
+                <div class="fc-diamond-text" style="font-size:9px;">edit_selected ≠ NONE<br>&& blink_state == 0?</div>
+            </div>
+        </div>
+        <div class="fc-edge-label yes" style="left:210px; top:585px;">ĐÚNG</div>
+        <div class="fc-edge-label no" style="left:420px; top:585px;">SAI</div>
+
+        <!-- Action: case edit_selected -->
+        <div class="fc-action"
+            style="left:80px; top:660px; width:300px; height:100px; font-size:10px; text-align:left; padding:6px 10px;">
+            <div>
+                <b>case(edit_selected):</b><br>
+                FIELD_SECOND: mask[3:2]=0 (nếu mode=0)<br>
+                FIELD_MINUTE: mask[5:4]=0 (nếu mode=0)<br>
+                FIELD_HOUR: mask[7:6]=0 (nếu mode=0)<br>
+                FIELD_DAY: mask[7:6]=0 (nếu mode=1)<br>
+                FIELD_MONTH: mask[5:4]=0 (nếu mode=1)<br>
+                FIELD_YEAR: mask[3:0]=0 (nếu mode=1)
+            </div>
+        </div>
+
+        <!-- Action: giữ nguyên 11111111 -->
+        <div class="fc-action" style="left:440px; top:660px; width:180px; height:40px;">
+            giữ blink_mask = 11111111
+        </div>
+
+        <!-- SVG wires -->
+        <svg class="wires">
+            <!-- Start -> rst_n -->
+            <line x1="740" y1="65" x2="740" y2="118" class="wire" marker-end="url(#fcArrow)" />
+            <!-- rst_n YES -> blink_state <= 1 -->
+            <polyline points="688,150 525,150 525,180" class="wire" marker-end="url(#fcArrow)" />
+            <!-- rst_n NO -> tick_blink -->
+            <polyline points="810,150 945,150 945,188" class="wire" marker-end="url(#fcArrow)" />
+            <!-- tick_blink YES -> toggle -->
+            <polyline points="888,245 888,270 920,300" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Combinational start -> default mask -->
+            <line x1="320" y1="445" x2="320" y2="470" class="wire" marker-end="url(#fcArrow)" />
+            <!-- default mask -> check condition -->
+            <line x1="320" y1="505" x2="320" y2="548" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Condition YES -> case -->
+            <polyline points="268,600 230,630 230,660" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Condition NO -> giữ nguyên -->
+            <polyline points="410,600 530,630 530,660" class="wire" marker-end="url(#fcArrow)" />
+        </svg>
+    </div>
+
+
+    <hr class="flow-separator">
+
+    <!-- ============================================================== -->
+    <!--  FLOWCHART 3: digit_selector                                   -->
+    <!-- ============================================================== -->
+    <div class="flow-section-title">LƯU ĐỒ GIẢI THUẬT — digit_selector.v</div>
+    <div class="fc-container" style="height:550px;">
+
+        <!-- Start -->
+        <div class="fc-start"
+            style="left:620px; top:20px; width:260px; height:40px; border-color:#1565c0; background:linear-gradient(135deg,#e3f2fd,#bbdefb);">
+            Tổ hợp: chọn digit theo mode
+        </div>
+
+        <!-- Decision: mode == 0? -->
+        <div class="fc-diamond" style="left:685px; top:100px;">
+            <div class="fc-diamond-inner">
+                <div class="fc-diamond-text">mode == 0 ?<br>(TIME)</div>
+            </div>
+        </div>
+        <div class="fc-edge-label yes" style="left:620px; top:140px;">ĐÚNG (TIME)</div>
+        <div class="fc-edge-label no" style="left:835px; top:140px;">SAI (DATE)</div>
+
+        <!-- TIME mode assignment -->
+        <div class="fc-action"
+            style="left:310px; top:220px; width:260px; height:150px; text-align:left; padding:8px 12px; font-size:11px;">
+            <b>TIME mode (HH:MM:SS)</b><br><br>
+            dig7 = hr_tens<br>
+            dig6 = hr_ones<br>
+            dig5 = min_tens<br>
+            dig4 = min_ones<br>
+            dig3 = sec_tens<br>
+            dig2 = sec_ones<br>
+            dig1 = 4'b1111 (tắt)<br>
+            dig0 = 4'b1111 (tắt)
+        </div>
+
+        <!-- DATE mode assignment -->
+        <div class="fc-action"
+            style="left:880px; top:220px; width:270px; height:150px; text-align:left; padding:8px 12px; font-size:11px;">
+            <b>DATE mode (DD-MM-YYYY)</b><br><br>
+            dig7 = day_tens<br>
+            dig6 = day_ones<br>
+            dig5 = mon_tens<br>
+            dig4 = mon_ones<br>
+            dig3 = yr_thousands<br>
+            dig2 = yr_hundreds<br>
+            dig1 = yr_tens<br>
+            dig0 = yr_ones
+        </div>
+
+        <!-- Output -->
+        <div class="fc-action"
+            style="left:600px; top:430px; width:280px; height:40px; background:linear-gradient(135deg,#e8f5e9,#c8e6c9); border-color:#4caf50;">
+            → dig7..dig0 ra bcd_to_7seg
+        </div>
+
+        <!-- SVG wires -->
+        <svg class="wires">
+            <!-- Start -> decision -->
+            <line x1="750" y1="60" x2="750" y2="108" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Decision YES -> TIME -->
+            <polyline points="693,140 440,140 440,220" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Decision NO -> DATE -->
+            <polyline points="815,140 1015,140 1015,220" class="wire" marker-end="url(#fcArrow)" />
+            <!-- TIME -> output -->
+            <polyline points="440,370 440,450 600,450" class="wire" marker-end="url(#fcArrow)" />
+            <!-- DATE -> output -->
+            <polyline points="1015,370 1015,450 880,450" class="wire" marker-end="url(#fcArrow)" />
+        </svg>
+    </div>
+
+
+    <hr class="flow-separator">
+
+    <!-- ============================================================== -->
+    <!--  FLOWCHART 4: bcd_to_7seg                                      -->
+    <!-- ============================================================== -->
+    <div class="flow-section-title">LƯU ĐỒ GIẢI THUẬT — bcd_to_7seg.v</div>
+    <div class="fc-container" style="height:500px;">
+
+        <!-- Start -->
+        <div class="fc-start"
+            style="left:620px; top:20px; width:260px; height:40px; border-color:#1565c0; background:linear-gradient(135deg,#e3f2fd,#bbdefb);">
+            Tổ hợp: giải mã BCD → 7 đoạn
+        </div>
+
+        <!-- Input -->
+        <div class="fc-action" style="left:660px; top:90px; width:180px; height:35px;">
+            data[3:0] đầu vào
+        </div>
+
+        <!-- Decision: case data -->
+        <div class="fc-diamond" style="left:680px; top:160px;">
+            <div class="fc-diamond-inner" style="width:140px; height:85px;">
+                <div class="fc-diamond-text">case (data) ?</div>
+            </div>
+        </div>
+
+        <!-- Case results - arranged in a row -->
+        <div class="fc-action" style="left:60px; top:290px; width:120px; height:60px; font-size:10px;">
+            0 → 1000000<br>1 → 1111001<br>2 → 0100100
+        </div>
+        <div class="fc-action" style="left:200px; top:290px; width:120px; height:60px; font-size:10px;">
+            3 → 0110000<br>4 → 0011001<br>5 → 0010010
+        </div>
+        <div class="fc-action" style="left:340px; top:290px; width:120px; height:60px; font-size:10px;">
+            6 → 0000010<br>7 → 1111000<br>8 → 0000000
+        </div>
+        <div class="fc-action" style="left:480px; top:290px; width:120px; height:60px; font-size:10px;">
+            9 → 0010000
+        </div>
+        <div class="fc-action"
+            style="left:680px; top:290px; width:160px; height:60px; font-size:10px; background:linear-gradient(135deg,#fce4ec,#f8bbd0); border-color:#d81b60;">
+            default → 1111111<br>(tắt hết)
+        </div>
+
+        <!-- Output -->
+        <div class="fc-action"
+            style="left:580px; top:410px; width:280px; height:40px; background:linear-gradient(135deg,#e8f5e9,#c8e6c9); border-color:#4caf50;">
+            → seg_data[6:0] (active low)
+        </div>
+
+        <!-- SVG wires -->
+        <svg class="wires">
+            <!-- Start -> input -->
+            <line x1="750" y1="60" x2="750" y2="90" class="wire" marker-end="url(#fcArrow)" />
+            <!-- input -> case -->
+            <line x1="750" y1="125" x2="750" y2="168" class="wire" marker-end="url(#fcArrow)" />
+            <!-- case -> branches -->
+            <polyline points="688,210 120,260 120,290" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="700,215 260,260 260,290" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="720,220 400,260 400,290" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="735,225 540,260 540,290" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="810,210 760,260 760,290" class="wire" marker-end="url(#fcArrow)" />
+            <!-- branches -> output -->
+            <polyline points="120,350 120,430 580,430" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="760,350 760,390 720,410" class="wire" marker-end="url(#fcArrow)" />
+        </svg>
+    </div>
+
+
+    <hr class="flow-separator">
+
+    <!-- ============================================================== -->
+    <!--  FLOWCHART 5: blink_mask_applier                               -->
+    <!-- ============================================================== -->
+    <div class="flow-section-title">LƯU ĐỒ GIẢI THUẬT — blink_mask_applier.v</div>
+    <div class="fc-container" style="height:450px;">
+
+        <!-- Start -->
+        <div class="fc-start"
+            style="left:580px; top:20px; width:310px; height:40px; border-color:#1565c0; background:linear-gradient(135deg,#e3f2fd,#bbdefb);">
+            Tổ hợp: áp dụng mặt nạ nhấp nháy
+        </div>
+
+        <!-- Inputs -->
+        <div class="fc-action" style="left:350px; top:90px; width:200px; height:35px;">
+            seg_data_in[i] (i = 0..7)
+        </div>
+        <div class="fc-action" style="left:920px; top:90px; width:180px; height:35px;">
+            blink_mask[7:0]
+        </div>
+
+        <!-- Decision: for each bit i -->
+        <div class="fc-diamond" style="left:660px; top:160px;">
+            <div class="fc-diamond-inner" style="width:150px; height:90px;">
+                <div class="fc-diamond-text">blink_mask[i]<br>== 1 ?</div>
+            </div>
+        </div>
+        <div class="fc-edge-label yes" style="left:610px; top:200px;">ĐÚNG (sáng)</div>
+        <div class="fc-edge-label no" style="left:825px; top:200px;">SAI (tắt)</div>
+
+        <!-- YES: pass through -->
+        <div class="fc-action" style="left:410px; top:290px; width:240px; height:40px;">
+            seg_data_out[i] = seg_data_in[i]<br>(hiển thị bình thường)
+        </div>
+
+        <!-- NO: blank -->
+        <div class="fc-action"
+            style="left:830px; top:290px; width:240px; height:40px; background:linear-gradient(135deg,#fce4ec,#f8bbd0); border-color:#d81b60;">
+            seg_data_out[i] = 7'b1111111<br>(tắt digit)
+        </div>
+
+        <!-- Output -->
+        <div class="fc-action"
+            style="left:560px; top:380px; width:340px; height:40px; background:linear-gradient(135deg,#e8f5e9,#c8e6c9); border-color:#4caf50;">
+            → SEG0..SEG7 ra LED 7 đoạn
+        </div>
+
+        <!-- SVG wires -->
+        <svg class="wires">
+            <!-- Start -> inputs -->
+            <line x1="735" y1="60" x2="735" y2="80" class="wire" />
+            <polyline points="735,80 450,80 450,90" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="735,80 1010,80 1010,90" class="wire" marker-end="url(#fcArrow)" />
+            <!-- inputs -> decision -->
+            <polyline points="450,125 450,150 668,198" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="1010,125 1010,150 810,198" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Decision YES -->
+            <polyline points="668,218 530,260 530,290" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Decision NO -->
+            <polyline points="810,218 950,260 950,290" class="wire" marker-end="url(#fcArrow)" />
+            <!-- To output -->
+            <polyline points="530,330 530,400 560,400" class="wire" marker-end="url(#fcArrow)" />
+            <polyline points="950,330 950,400 900,400" class="wire" marker-end="url(#fcArrow)" />
+        </svg>
+    </div>
+
+
+    <hr class="flow-separator">
+
+    <!-- ============================================================== -->
+    <!--  FLOWCHART 6: display_mode_manager (sơ đồ mạch)                -->
+    <!-- ============================================================== -->
+    <div class="flow-section-title">SƠ ĐỒ MẠCH — display_mode_manager.v</div>
+    <div class="fc-container" style="height:320px;">
+
+        <!-- MUX 2:1 for D input -->
+        <div class="module-block blue" style="left:360px; top:60px; width:140px; height:70px; font-size:12px;">
+            <div class="module-name" style="font-size:12px;">MUX 2:1<small>sel = tick_1min</small></div>
+        </div>
+
+        <!-- D Flip-Flop block -->
+        <div class="module-block blue" style="left:620px; top:40px; width:200px; height:110px;">
+            <div class="module-name" style="font-size:13px;">D Flip-Flop<small>
+                    CLK = clk_50MHz<br>
+                    R = rst_n (async reset)
+                </small></div>
+        </div>
+
+        <!-- Input signals -->
+        <div class="signal-label" style="left:230px; top:60px;">mode (giữ) →</div>
+        <div class="signal-label" style="left:230px; top:110px;">~mode (đảo) →</div>
+        <div class="signal-label" style="left:250px; top:85px; font-size:10px; color:#888;">0</div>
+        <div class="signal-label" style="left:250px; top:130px; font-size:10px; color:#888;">1</div>
+
+        <!-- MUX select -->
+        <div class="signal-label" style="left:170px; top:145px;">tick_1min →</div>
+        <div class="signal-label" style="left:400px; top:140px;">↑ sel</div>
+
+        <!-- MUX -> D FF -->
+        <div class="signal-label" style="left:510px; top:82px;">→ D</div>
+
+        <!-- Clock and Reset -->
+        <div class="signal-label" style="left:650px; top:160px;">↑ clk_50MHz</div>
+        <div class="signal-label" style="left:780px; top:160px;">rst_n ↓</div>
+
+        <!-- Output -->
+        <div class="signal-label bus" style="left:830px; top:85px;">→ mode (Q)</div>
+
+        <!-- Feedback arrow -->
+        <svg class="wires">
+            <!-- MUX output -> D FF input -->
+            <line x1="500" y1="95" x2="620" y2="95" class="wire" marker-end="url(#fcArrow)" />
+            <!-- tick_1min -> MUX sel -->
+            <polyline points="280,150 430,150 430,130" class="wire" marker-end="url(#fcArrow)" />
+            <!-- mode input 0 -> MUX -->
+            <line x1="310" y1="68" x2="360" y2="78" class="wire" marker-end="url(#fcArrow)" />
+            <!-- ~mode input 1 -> MUX -->
+            <line x1="310" y1="118" x2="360" y2="108" class="wire" marker-end="url(#fcArrow)" />
+            <!-- Output Q feedback -->
+            <polyline points="820,95 890,95 890,240 200,240 200,68 230,68" class="wire dashed"
+                marker-end="url(#fcArrow)" />
+            <!-- Output Q feedback to ~mode (inverted) -->
+            <polyline points="200,118 220,118" class="wire dashed" />
+            <!-- Inverter bubble -->
+            <circle cx="225" cy="118" r="5" fill="none" stroke="#333" stroke-width="1.5" />
+        </svg>
+    </div>
+
+
+
+</body>
+
+</html>
