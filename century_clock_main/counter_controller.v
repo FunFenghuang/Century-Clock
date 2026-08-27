@@ -49,25 +49,23 @@ module counter_controller (
     // dong ho chi chay binh thuong khi khong co field nao dang bi chinh
     wire run = !edit_enable;
 
-    // =================================================================
     // Logic gán tín hiệu up/down cho từng khối đếm
-    // =================================================================
-    wire sec_up   = run ? tick_1hz : (edit_enable && !mode && edit_select==SEL_1 && up);
+    wire sec_up   = edit_enable && !mode && edit_select==SEL_1 && up;
     wire sec_down = edit_enable && !mode && edit_select==SEL_1 && down;
 
-    wire min_up   = run ? sig_1min : (edit_enable && !mode && edit_select==SEL_2 && up);
+    wire min_up   = edit_enable && !mode && edit_select==SEL_2 && up;
     wire min_down = edit_enable && !mode && edit_select==SEL_2 && down;
 
-    wire hr_up    = run ? sig_1h   : (edit_enable && !mode && edit_select==SEL_3 && up);
+    wire hr_up    = edit_enable && !mode && edit_select==SEL_3 && up;
     wire hr_down  = edit_enable && !mode && edit_select==SEL_3 && down;
 
-    wire day_up   = run ? sig_1d   : (edit_enable &&  mode && edit_select==SEL_1 && up);
+    wire day_up   = edit_enable &&  mode && edit_select==SEL_1 && up;
     wire day_down = edit_enable &&  mode && edit_select==SEL_1 && down;
 
-    wire mon_up   = run ? sig_1m   : (edit_enable &&  mode && edit_select==SEL_2 && up);
+    wire mon_up   = edit_enable &&  mode && edit_select==SEL_2 && up;
     wire mon_down = edit_enable &&  mode && edit_select==SEL_2 && down;
 
-    wire yr_up    = run ? sig_1y   : (edit_enable &&  mode && edit_select==SEL_3 && up);
+    wire yr_up    = edit_enable &&  mode && edit_select==SEL_3 && up;
     wire yr_down  = edit_enable &&  mode && edit_select==SEL_3 && down;
 
     sec_counter my_sec (
@@ -75,7 +73,7 @@ module counter_controller (
         .rst_n(rst_n),
         // chạy chế độ bình thương: tăng theo xung 1Hz
         // chạy chế độ chỉnh: khi chọn chế độ chỉnh edit_enable = 1, mode = 0 để chỉnh được giây, lựa chọn chỉnh giây và chọn chế độ up
-        .up (sec_up),
+        .up (run ? tick_1hz : sec_up),
         .down (sec_down),
         .sig_1min(sig_1min),
         .ones(sec_ones),
@@ -86,7 +84,7 @@ module counter_controller (
     min_counter my_min (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
-        .up (min_up),
+        .up (run ? sig_1min : min_up),
         .down (min_down),
         .sig_1h(sig_1h),
         .ones(min_ones),
@@ -97,7 +95,7 @@ module counter_controller (
     hour_counter my_hr (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
-        .up (hr_up),
+        .up (run ? sig_1h : hr_up),
         .down (hr_down),
         .sig_1d(sig_1d),
         .ones(hr_ones),
@@ -107,7 +105,7 @@ module counter_controller (
     day_counter my_day (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
-        .up (day_up),
+        .up (run ? sig_1d : day_up),
         .down (day_down),
         .month(month_bin),
         .leap(leap),
@@ -120,7 +118,7 @@ module counter_controller (
     month_counter my_month (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
-        .up (mon_up),
+        .up (run ? sig_1m : mon_up),
         .down (mon_down),
         .sig_1y(sig_1y),
         .month(month_bin),
@@ -132,7 +130,7 @@ module counter_controller (
     year_counter my_year (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
-        .up (yr_up),
+        .up (run ? sig_1y : yr_up),
         .down (yr_down),
         .ones(yr_ones),
         .tens(yr_tens),
