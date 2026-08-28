@@ -21,7 +21,6 @@ module control_controller (
     // 1. CLOCK DIVIDER - Generates base timing ticks
     wire tick_100hz;
     wire tick_1hz;
-    wire tick_1min;
     wire tick_blink;
     wire edit_enable;
 
@@ -31,8 +30,7 @@ module control_controller (
         .edit_enable (edit_enable),
         .tick_100hz  (tick_100hz),
         .tick_1hz    (tick_1hz),
-        .tick_blink  (tick_blink),
-        .tick_1min   (tick_1min)
+        .tick_blink  (tick_blink)
     );
 
     // 2. DISPLAY MODE MANAGER - Toggles between TIME and DATE every minute

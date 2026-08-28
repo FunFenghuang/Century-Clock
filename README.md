@@ -15,40 +15,41 @@ A full-featured digital clock implemented in Verilog, designed for FPGA deployme
 
 ## Architecture
 
-The design follows a top-down hierarchical approach with three main blocks:
+The design is organized into three main blocks: **Input Processing**, **Counter Chain**, and **Display Pipeline**.
 
 ```mermaid
-graph TD
-    subgraph TOP["control_controller (Top Module)"]
-        CLK["clock_divider<br/>50MHz → 100Hz → 1Hz → 2Hz"]
-        EFS["edit_field_selector<br/>SW[5:0] → field code"]
-        BTN["btn_handler x2<br/>Debounce + Edge detect"]
-
-        CLK -->|"tick_1hz<br/>tick_100hz<br/>tick_blink"| CC
-        EFS -->|"edit_selected<br/>edit_enable"| CC
-        BTN -->|"up_tick<br/>down_tick"| CC
-
-        subgraph CC["counter_controller"]
-            SEC["sec_counter"] -->|"sig_1min"| MIN["min_counter"]
-            MIN -->|"sig_1h"| HR["hour_counter"]
-            HR -->|"sig_1d"| DAY["day_counter"]
-            DAY -->|"sig_1m"| MON["month_counter"]
-            MON -->|"sig_1y"| YR["year_counter"]
-            LEAP["leap_year_detector"] -->|"leap"| DAY
-        end
-
-        CC -->|"BCD data"| DC
-
-        subgraph DC["display_controller"]
-            DS["digit_selector"] --> BCD7["bcd_to_7seg x8"]
-            BCD7 --> BMA["blink_mask_applier"]
-        end
-
-        DMM["display_mode_manager"] -->|"mode"| DS
-        BS["blink_selector"] -->|"blink_mask"| BMA
-
-        DC -->|"SEG0 .. SEG7"| LED["7-Segment LEDs"]
+flowchart LR
+    subgraph INPUT["Input Processing"]
+        CLK["clock_divider\n50MHz → 1Hz, 2Hz, 100Hz"]
+        BTN["btn_handler x2\nDebounce + Edge detect"]
+        EFS["edit_field_selector\nSW → field code"]
     end
+
+    subgraph COUNTER["Counter Chain"]
+        SEC[sec_counter] -->|sig_1min| MIN[min_counter]
+        MIN -->|sig_1h| HR[hour_counter]
+        HR -->|sig_1d| DAY[day_counter]
+        DAY -->|sig_1m| MON[month_counter]
+        MON -->|sig_1y| YR[year_counter]
+        YR -->|year| LEAP[leap_year_detector]
+        LEAP -->|leap| DAY
+    end
+
+    subgraph DISPLAY["Display Pipeline"]
+        DMM[display_mode_manager] -->|mode| DS[digit_selector]
+        DS --> BCD[bcd_to_7seg x8]
+        BCD --> BMA[blink_mask_applier]
+        BS[blink_selector] -->|blink_mask| BMA
+        BMA -->|SEG0..SEG7| LED[7-Segment LEDs]
+    end
+
+    CLK -->|tick_1hz| SEC
+    CLK -->|tick_100hz| BTN
+    CLK -->|tick_blink| BS
+    BTN -->|up / down| SEC
+    EFS -->|edit_select\nedit_enable| SEC
+    SEC -.->|sig_1min_out| DMM
+    COUNTER -->|BCD data| DS
 ```
 
 ## Project Structure
