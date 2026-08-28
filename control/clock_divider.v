@@ -8,16 +8,16 @@ module clock_divider #(parameter clk_f = 50000000) (
 );
 
 
-    // Công thức: giới hạn = (Tần số vào / Tần số ra) - 1
-    localparam MAX_100HZ = (clk_f / 100) - 1; // Tính từ 50MHz
-    localparam MAX_1HZ   = 100 - 1;           // Đếm 100 nhịp của 100Hz = 1 giây
-    localparam MAX_2HZ   = 50 - 1;            // Đếm 50 nhịp cuả 100Hz
+    // Formula: limit = (input_frequency / output_frequency) - 1
+    localparam MAX_100HZ = (clk_f / 100) - 1; // Derived from 50MHz input
+    localparam MAX_1HZ   = 100 - 1;           // Count 100 ticks of 100Hz = 1 second
+    localparam MAX_2HZ   = 50 - 1;            // Count 50 ticks of 100Hz = 0.5 second
 
     reg [18:0] counter_100hz;
     reg [6:0]  counter_1hz;
     reg [5:0]  counter_blink;
 
-    // TẦNG 1: Tạo xung tick_100hz
+    // STAGE 1: Generate 100Hz tick from system clock
     always @(posedge clk or negedge rst_n) begin 
         if (!rst_n) begin
             counter_100hz <= 0;
@@ -34,7 +34,7 @@ module clock_divider #(parameter clk_f = 50000000) (
     end
 
 
-    // TẦNG 2: Tạo xung tick_1hz 
+    // STAGE 2: Generate 1Hz tick by dividing 100Hz
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -54,7 +54,7 @@ module clock_divider #(parameter clk_f = 50000000) (
         end 
     end
 
-    // Tầng 3 : Tạo xung tick_blink
+    // STAGE 3: Generate 2Hz blink tick for display blinking
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             counter_blink <= 0;

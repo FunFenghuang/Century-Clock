@@ -1,24 +1,23 @@
-// dem gio: gom 2 khoi dem gio va chuyen sang bcd
+// Hour counter: counts hours (0-23), outputs BCD digits and carry signal
 
 module hour_counter(
     input clk_50MHz,
     input rst_n,
     input up, down,
-    output sig_1d,
-    output reg [3:0] ones, tens
+    output sig_1d,              // Carry output: pulses high when hours roll over from 23 to 0
+    output reg [3:0] ones, tens // BCD output: tens and ones digits
 );
 
-    reg [4:0] hour;          // toi da 24h -> can 5bit
+    reg [4:0] hour;             // Binary hour value (0-23), requires 5 bits
     assign sig_1d = (up == 1'b1 && hour == 5'd23) ? 1'b1 : 1'b0;
 
+    // Sequential counter logic
     always @(posedge clk_50MHz or negedge rst_n) begin
-
-        // TIN HIEU RESET DUOC KICH HOAT
         if(rst_n == 1'b0) begin
             hour <= 5'd0;
         end
         else begin 
-            // tang tin hieu (xung clk_50MHz hoac nut bam)
+            // Increment (wraps from 23 to 0)
             if (up == 1'b1) begin 
                 if (hour == 5'd23) begin
                     hour <= 5'd0;
@@ -28,7 +27,7 @@ module hour_counter(
                 end
             end
 
-            // giam tin hieu
+            // Decrement (wraps from 0 to 23)
             else if (down == 1'b1) begin
                 if (hour == 5'd0) begin
                     hour <= 5'd23;
@@ -38,13 +37,14 @@ module hour_counter(
                 end
             end
 
-            // khong tang khong giam
+            // Hold current value
             else begin 
                 hour <= hour;
             end
         end
     end
 
+    // Combinational logic: binary to BCD conversion
     always @(hour) begin
                         
         if (hour < 10) begin 

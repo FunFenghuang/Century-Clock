@@ -1,18 +1,18 @@
 module counter_controller (
     input clk_50MHz,
     input rst_n,
-    input tick_1hz,             // xung 1Hz tu clock divider, dung de chay dong ho binh thuong
-    input edit_enable,          // 1 = dang co switch bat len -> dung toan bo dong ho, chi field duoc chon phan hoi up/down
+    input tick_1hz,             // 1Hz tick from clock divider, drives the clock in normal mode
+    input edit_enable,          // 1 = a switch is active -> freeze all counters, only the selected field responds to up/down
 
-    /* mode: bien chon nhom dang thao tac. Khoi ben ngoai chiu trach nhiem tu dao gia tri nay moi 1 phut de doi hien thi.
-       mode = 0 -> dang lam viec voi nhom GIO : PHUT : GIAY
-       mode = 1 -> dang lam viec voi nhom NGAY : THANG : NAM */
+    /* mode: selects the active counter group. An external block toggles this every minute to switch display.
+       mode = 0 -> operating on the TIME group: HOUR : MINUTE : SECOND
+       mode = 1 -> operating on the DATE group: DAY : MONTH : YEAR */
     input mode,
 
-    input [1:0] edit_select,    // chon field trong nhom hien tai
-    input up, down,              // nut tang/giam khi dang chinh (edit_enable = 1)
+    input [1:0] edit_select,    // selects a field within the current group
+    input up, down,              // increment/decrement buttons (active when edit_enable = 1)
 
-    // xuat du lieu BCD cho display
+    // BCD output data for display
     output [3:0] sec_ones, sec_tens,
     output [3:0] min_ones, min_tens,
     output [3:0] hr_ones, hr_tens,
@@ -24,32 +24,32 @@ module counter_controller (
 
     assign sig_1min_out = sig_1min;
 
-    /* Ma hoa edit_select ket hop voi mode de xac dinh
-       dung 1 trong 6 field can chinh:
-       mode == 0 (nhom GIO:PHUT:GIAY):
-           edit_select = 2'b01 -> GIAY
-           edit_select = 2'b10 -> PHUT
-           edit_select = 2'b11 -> GIO
-       mode == 1 (nhom NGAY:THANG:NAM):
-           edit_select = 2'b01 -> NGAY
-           edit_select = 2'b10 -> THANG
-           edit_select = 2'b11 -> NAM
-       edit_select = 2'b00 -> khong co field nao duoc chon */
+    /* edit_select encoding combined with mode to identify
+       exactly 1 of 6 editable fields:
+       mode == 0 (TIME group: HOUR:MINUTE:SECOND):
+           edit_select = 2'b01 -> SECOND
+           edit_select = 2'b10 -> MINUTE
+           edit_select = 2'b11 -> HOUR
+       mode == 1 (DATE group: DAY:MONTH:YEAR):
+           edit_select = 2'b01 -> DAY
+           edit_select = 2'b10 -> MONTH
+           edit_select = 2'b11 -> YEAR
+       edit_select = 2'b00 -> no field selected */
 
     localparam SEL_1 = 2'b01;
     localparam SEL_2 = 2'b10;
     localparam SEL_3 = 2'b11;
 
-    // wire carry noi bo giua cac khoi dem
+    // Internal carry signals between counter stages
     wire sig_1min, sig_1h, sig_1d, sig_1m, sig_1y;
-    wire [3:0] month_bin;   // gia tri nhi phan thang hien tai, day_counter can de biet so ngay toi da
-    wire [13:0] year_bin;   // gia tri nhi phan nam hien tai, leap_year_detector can
+    wire [3:0] month_bin;   // Binary month value, needed by day_counter for max-day calculation
+    wire [13:0] year_bin;   // Binary year value, needed by leap_year_detector
     wire leap;
 
-    // dong ho chi chay binh thuong khi khong co field nao dang bi chinh
+    // Clock runs normally only when no field is being edited
     wire run = !edit_enable;
 
-    // Logic gán tín hiệu up/down cho từng khối đếm
+    // Route up/down signals to the appropriate counter based on mode and edit_select
     wire sec_up   = edit_enable && !mode && edit_select==SEL_1 && up;
     wire sec_down = edit_enable && !mode && edit_select==SEL_1 && down;
 
@@ -68,11 +68,10 @@ module counter_controller (
     wire yr_up    = edit_enable &&  mode && edit_select==SEL_3 && up;
     wire yr_down  = edit_enable &&  mode && edit_select==SEL_3 && down;
 
+    // Second counter: in run mode increments on 1Hz tick; in edit mode responds to manual up/down
     sec_counter my_sec (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
-        // chạy chế độ bình thương: tăng theo xung 1Hz
-        // chạy chế độ chỉnh: khi chọn chế độ chỉnh edit_enable = 1, mode = 0 để chỉnh được giây, lựa chọn chỉnh giây và chọn chế độ up
         .up (run ? tick_1hz : sec_up),
         .down (sec_down),
         .sig_1min(sig_1min),
@@ -80,7 +79,7 @@ module counter_controller (
         .tens(sec_tens)
     );
 
-    
+    // Minute counter: in run mode increments on carry from seconds
     min_counter my_min (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
@@ -91,7 +90,7 @@ module counter_controller (
         .tens(min_tens)
     );
 
-   
+    // Hour counter: in run mode increments on carry from minutes
     hour_counter my_hr (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
@@ -102,6 +101,7 @@ module counter_controller (
         .tens(hr_tens)
     );
 
+    // Day counter: in run mode increments on carry from hours
     day_counter my_day (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
@@ -114,7 +114,7 @@ module counter_controller (
         .tens(day_tens)
     );
 
-
+    // Month counter: in run mode increments on carry from days
     month_counter my_month (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
@@ -126,7 +126,7 @@ module counter_controller (
         .tens(mon_tens)
     );
 
- 
+    // Year counter: in run mode increments on carry from months
     year_counter my_year (
         .clk_50MHz(clk_50MHz),
         .rst_n(rst_n),
@@ -139,6 +139,7 @@ module counter_controller (
         .year(year_bin)
     );
 
+    // Leap year detector: determines if the current year is a leap year
     leap_year_detector my_leap (
         .year(year_bin),
         .ones(yr_ones),

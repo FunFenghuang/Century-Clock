@@ -1,5 +1,5 @@
-// Giai ma BCD sang ma 7 doan (active low)
-// data[3:0] -> seg_data[6:0] (a,b,c,d,e,f,g)
+// BCD to 7-segment decoder (active-low outputs)
+// data[3:0] -> seg_data[6:0] (segments: a, b, c, d, e, f, g)
 
 module bcd_to_7seg (
     input  [3:0] data,
@@ -18,7 +18,7 @@ module bcd_to_7seg (
             4'b0111: seg_data = 7'b1111000; // 7
             4'b1000: seg_data = 7'b0000000; // 8
             4'b1001: seg_data = 7'b0010000; // 9
-            default: seg_data = 7'b1111111; // tat (off)
+            default: seg_data = 7'b1111111; // All segments off
         endcase
     end
 

@@ -1,24 +1,24 @@
-// dem thang: gom 2 khoi dem thang va chuyen sang bcd
+// Month counter: counts months (1-12), outputs BCD digits and carry signal
 
 module month_counter(
     input clk_50MHz,
     input rst_n,
     input up, down,
-    output sig_1y,
-    output reg [3:0] month, // toi da 12month -> can 4bit
-    output reg [3:0] ones, tens
+    output sig_1y,              // Carry output: pulses high when months roll over from 12 to 1
+    output reg [3:0] month,     // Binary month value (1-12), 4 bits required
+    output reg [3:0] ones, tens // BCD output: tens and ones digits
 );
 
+    // Carry signal: asserted when incrementing past December
     assign sig_1y = (up == 1'b1 && month == 4'd12) ? 1'b1 : 1'b0;
 
+    // Sequential counter logic
     always @(posedge clk_50MHz or negedge rst_n) begin
-
-        // TIN HIEU RESET DUOC KICH HOAT
         if(rst_n == 1'b0) begin
             month <= 4'd1;
         end
         else begin 
-            // tang tin hieu (xung clk_50MHz hoac nut bam)
+            // Increment (wraps from 12 to 1)
             if (up == 1'b1) begin 
                 if (month == 4'd12) begin
                     month <= 4'd1;
@@ -28,7 +28,7 @@ module month_counter(
                 end
             end
 
-            // giam tin hieu
+            // Decrement (wraps from 1 to 12)
             else if (down == 1'b1) begin
                 if (month == 4'd1) begin
                     month <= 4'd12;
@@ -38,13 +38,14 @@ module month_counter(
                 end
             end
 
-            // khong tang khong giam
+            // Hold current value
             else begin 
                 month <= month;
             end
         end
     end
 
+    // Combinational logic: binary to BCD conversion
     always @(month) begin
                         
         if (month < 10) begin 

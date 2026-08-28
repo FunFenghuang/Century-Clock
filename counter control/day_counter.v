@@ -1,18 +1,19 @@
-// bo dem ngay: xac dinh ngay toi dang trong cac thang, dem ngay doi sang BCD
+// Day counter: counts days with month-aware max-day logic, outputs BCD digits
+
 module day_counter(
     input clk_50MHz,
     input rst_n,
     input up, down,
-    input [3:0] month,
-    input leap,
-    output sig_1m,
-    output reg [3:0] ones, tens
+    input [3:0] month,          // Current month (binary), used to determine max days
+    input leap,                 // Leap year flag from leap_year_detector
+    output sig_1m,              // Carry output: pulses high when days roll over
+    output reg [3:0] ones, tens // BCD output: tens and ones digits
 );
 
     reg [4:0] max_day_in_month;
     reg [4:0] day;
 
-    //  Xac dinh so ngay toi da trong thang
+    // Determine maximum number of days in the current month
     always @(month or leap) begin
         case (month)
             4'd1, 4'd3, 4'd5, 4'd7, 4'd8, 4'd10, 4'd12: begin 
@@ -34,17 +35,17 @@ module day_counter(
             end
         endcase
     end
+
+    // Carry signal: asserted when incrementing past the last day of the month
     assign sig_1m = (up == 1'b1 && day >= max_day_in_month) ? 1'b1 : 1'b0;
 
-    // Dem ngay
+    // Sequential counter logic
     always @(posedge clk_50MHz or negedge rst_n) begin
-        
-        // TIN HIEU RESET DUOC KICH HOAT
         if(rst_n == 1'b0) begin
-            day <= 5'd1;                        // Ngay luon bat dau tu 1
+            day <= 5'd1;                        // Day always starts from 1
         end
         else begin 
-            // tang tin hieu (nut bam)
+            // Increment (wraps to 1 after max day)
             if (up == 1'b1) begin 
                 if (day >= max_day_in_month) begin
                     day <= 5'd1;
@@ -54,10 +55,10 @@ module day_counter(
                 end
             end
 
-            // giam tin hieu
+            // Decrement (wraps to max day from 1)
             else if (down == 1'b1) begin
                 if (day == 5'd1) begin
-                    day <= max_day_in_month;    // Vong nguoc ve ngay cuoi cung cua thang
+                    day <= max_day_in_month;
                 end
                 else begin
                      if (day > max_day_in_month) begin
@@ -69,7 +70,7 @@ module day_counter(
                 end
             end
 
-            // khong tang khong giam
+            // Hold: clamp to max_day if month changed and current day exceeds new max
             else begin 
                 if (day > max_day_in_month) begin
                     day <= max_day_in_month;
@@ -82,7 +83,7 @@ module day_counter(
         end
     end
 
-    // Khoi to hop: Giai ma sang BCD
+    // Combinational logic: binary to BCD conversion
     always @(day) begin
         
         if (day < 10) begin 

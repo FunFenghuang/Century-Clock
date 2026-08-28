@@ -1,46 +1,43 @@
-// bo dem giay: gom 2 khoi dem giay, chuyen sang bcd
-
+// Second counter: counts seconds (0-59), outputs BCD digits and carry signal
 
 module sec_counter (
-    input clk_50MHz, rst_n,              // xung clk_50MHz, tin hieu reset low active
-    input up,                           // +1 gia tri giay (cong bang button hoac xung 1Hz)
-    input down,
-    output sig_1min,                    // tin hieu phut ghi giay dem den 60
-    output reg [3:0] ones, tens          // tach tung giay ra thanh chuc, don vi, Chuyen he 10 -> 2 (phan mem tu lam). Max 9 -> toi da 4 bit
+    input clk_50MHz, rst_n,     // System clock and active-low reset
+    input up,                   // Increment: driven by 1Hz tick (normal mode) or button (edit mode)
+    input down,                 // Decrement: driven by button (edit mode only)
+    output sig_1min,            // Carry output: pulses high when seconds roll over from 59 to 0
+    output reg [3:0] ones, tens // BCD output: tens and ones digits of the current second
 );
 
-    reg [5:0] sec;      // bien luu gia tri cua second dang nhi phan
+    reg [5:0] sec;              // Binary second value (0-59)
     assign sig_1min = (up == 1'b1 && sec == 6'd59) ? 1'b1 : 1'b0;
 
-    always @(posedge clk_50MHz or negedge rst_n) begin        // dau ra thay doi thi suon duong clk_50MHz va suon am rst_n
-        // TIN HIEU RESET DUOC KICH HOAT
+    // Sequential counter logic
+    always @(posedge clk_50MHz or negedge rst_n) begin
         if(rst_n == 1'b0) begin     
-            sec <= 6'd0;            // sec va sig_1min reset ve 0
+            sec <= 6'd0;
         end
-
-        // TIN HIEU RESET KHONG DUOC KICH HOAT
         else begin 
-            // tang tin hieu: xung clk_50MHz hoac nut bam
+            // Increment
             if (up == 1'b1) begin 
-                if (sec == 6'd59) begin         // khi tin hieu giay dem den 59
-                    sec <= 6'd0;                // quay tro lai 0
+                if (sec == 6'd59) begin
+                    sec <= 6'd0;
                 end
                 else begin 
-                    sec <= sec + 1;             // cong 1s
+                    sec <= sec + 1;
                 end
             end
 
-            // giam tin hieu (nut bam)
+            // Decrement (wraps from 0 to 59)
             else if (down == 1'b1) begin 
                 if (sec == 6'd0) begin
-                    sec <= 6'd59;               // vong nguoc tro ve phut 59          
+                    sec <= 6'd59;
                 end
                 else begin
                     sec <= sec -1'b1; 
                 end
             end
 
-            // tin hieu khong tang khong giam: giu nguyen gia tri 
+            // Hold current value
             else begin
                 sec <= sec;
             end
@@ -48,6 +45,7 @@ module sec_counter (
 
     end  
 
+    // Combinational logic: binary to BCD conversion
     always @(sec) begin
                         
         if (sec < 10) begin 

@@ -1,20 +1,20 @@
-// Khoi dieu khien hien thi: nhan du lieu BCD tu counter, chon digit theo mode,
-// giai ma 7 doan, ap dung nhap nhay
+// Display controller: receives BCD data from the counter, selects digits
+// based on mode, decodes to 7-segment, and applies blink masking
 //
-// Luong du lieu:
-//   BCD (ones/tens) tu counter_controller
-//     -> digit_selector (chon theo mode)
-//       -> bcd_to_7seg x8 (giai ma 7 doan)
-//         -> blink_mask_applier (ap dung nhap nhay)
-//           -> SEG0..SEG7 (dau ra LED)
+// Data flow:
+//   BCD (ones/tens) from counter_controller
+//     -> digit_selector (selects digits based on mode)
+//       -> bcd_to_7seg x8 (decodes to 7-segment patterns)
+//         -> blink_mask_applier (applies blink effect)
+//           -> SEG0..SEG7 (LED outputs)
 
 module display_controller (
-    input wire       clk_50MHz,         // khong dung, khai bao de khop voi control_controller
-    input wire       rst_n,             // khong dung, khai bao de khop voi control_controller
-    input wire       mode,      // 0: DATE, 1: TIME
-    input wire [7:0] blink_mask,        // mat na nhap nhay tu blink_selector
+    input wire       clk_50MHz,         // Unused, declared for port compatibility with top module
+    input wire       rst_n,             // Unused, declared for port compatibility with top module
+    input wire       mode,              // 0: TIME, 1: DATE
+    input wire [7:0] blink_mask,        // Blink mask from blink_selector
 
-    // Du lieu BCD tu counter_controller (KHONG THAY DOI)
+    // BCD data from counter_controller
     input wire [3:0] sec_ones, sec_tens,
     input wire [3:0] min_ones, min_tens,
     input wire [3:0] hr_ones,  hr_tens,
@@ -22,7 +22,7 @@ module display_controller (
     input wire [3:0] mon_ones, mon_tens,
     input wire [3:0] yr_ones,  yr_tens, yr_hundreds, yr_thousands,
 
-    // Xuat ra 8 LED 7 doan
+    // 7-segment LED outputs (active-low)
     output wire [6:0] SEG0,
     output wire [6:0] SEG1,
     output wire [6:0] SEG2,
@@ -34,7 +34,7 @@ module display_controller (
 );
 
     // ========================================================
-    // BUOC 1: Chon digit hien thi theo mode
+    // STEP 1: Select display digits based on mode
     // ========================================================
     wire [3:0] dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7;
 
@@ -54,7 +54,7 @@ module display_controller (
     );
 
     // ========================================================
-    // BUOC 2: Giai ma BCD sang ma 7 doan (8 instance)
+    // STEP 2: Decode BCD to 7-segment patterns (8 instances)
     // ========================================================
     wire [6:0] seg_raw0, seg_raw1, seg_raw2, seg_raw3;
     wire [6:0] seg_raw4, seg_raw5, seg_raw6, seg_raw7;
@@ -69,7 +69,7 @@ module display_controller (
     bcd_to_7seg my_seg7 (.data(dig7), .seg_data(seg_raw7));
 
     // ========================================================
-    // BUOC 3: Ap dung mat na nhap nhay
+    // STEP 3: Apply blink mask to 7-segment outputs
     // ========================================================
     blink_mask_applier my_blink_apply (
         .blink_mask(blink_mask),

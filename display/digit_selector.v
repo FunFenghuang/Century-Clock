@@ -1,9 +1,9 @@
-// Chon digit hien thi dua tren mode
+// Digit selector: routes BCD data to display digits based on display mode
 // mode = 0 -> TIME: HH:MM:SS (dig7..dig0)
 // mode = 1 -> DATE: DD-MM-YYYY (dig7..dig0)
 
 module digit_selector (
-    // Du lieu BCD tu counter_controller
+    // BCD data from counter_controller
     input [3:0] sec_ones, sec_tens,
     input [3:0] min_ones, min_tens,
     input [3:0] hr_ones,  hr_tens,
@@ -12,9 +12,9 @@ module digit_selector (
     input [3:0] yr_ones,  yr_tens,
     input [3:0] yr_hundreds, yr_thousands,
 
-    input mode,             // 0: DATE, 1: TIME
+    input mode,             // 0: TIME, 1: DATE
 
-    // 8 digit output cho 8 led 7 doan
+    // 8-digit output for 8 seven-segment LEDs
     output reg [3:0] dig0, dig1, dig2, dig3,
     output reg [3:0] dig4, dig5, dig6, dig7
 );
@@ -30,8 +30,8 @@ module digit_selector (
             dig4 = min_ones;
             dig3 = sec_tens;
             dig2 = sec_ones;
-            dig1 = 4'b1111;         // tat (off)
-            dig0 = 4'b1111;         // tat (off)
+            dig1 = 4'b1111;         // Off
+            dig0 = 4'b1111;         // Off
         end
         else begin
             // DATE mode: DD-MM-YYYY

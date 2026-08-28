@@ -1,6 +1,6 @@
-// Ap dung mat na nhap nhay len tin hieu 7 doan
-// Khi blink_mask[i] = 0, digit thu i bi tat (7'b1111111)
-// Khi blink_mask[i] = 1, digit thu i hien thi binh thuong
+// Blink mask applier: applies a blink mask to the 7-segment display signals
+// When blink_mask[i] = 0, digit i is turned off (all segments off: 7'b1111111)
+// When blink_mask[i] = 1, digit i displays normally
 
 module blink_mask_applier (
     input  [7:0] blink_mask,

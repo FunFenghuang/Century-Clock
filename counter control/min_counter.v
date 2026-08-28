@@ -1,24 +1,23 @@
-// dem phut: gom 2 khoi dem phut va chuyen sang bcd
+// Minute counter: counts minutes (0-59), outputs BCD digits and carry signal
 
 module min_counter(
     input clk_50MHz,
     input rst_n,
     input up, down,
-    output sig_1h,
-    output reg [3:0] ones, tens
+    output sig_1h,              // Carry output: pulses high when minutes roll over from 59 to 0
+    output reg [3:0] ones, tens // BCD output: tens and ones digits
 );
 
-    reg [5:0] min;
+    reg [5:0] min;              // Binary minute value (0-59)
     assign sig_1h = (up == 1'b1 && min == 6'd59) ? 1'b1 : 1'b0;
 
+    // Sequential counter logic
     always @(posedge clk_50MHz or negedge rst_n) begin
-
-        // TIN HIEU RESET DUOC KICH HOAT
         if(rst_n == 1'b0) begin
             min <= 6'd0;
         end
         else begin 
-            // tang tin hieu (xung clk_50MHz hoac nut bam)
+            // Increment
             if (up == 1'b1) begin 
                 if (min == 6'd59) begin
                     min <= 6'd0;
@@ -28,7 +27,7 @@ module min_counter(
                 end
             end
 
-            // giam tin hieu
+            // Decrement (wraps from 0 to 59)
             else if (down == 1'b1) begin
                 if (min == 6'd0) begin
                     min <= 6'd59;
@@ -38,13 +37,14 @@ module min_counter(
                 end
             end
 
-            // khong tang khong giam
+            // Hold current value
             else begin 
                 min <= min;
             end
         end
     end
 
+    // Combinational logic: binary to BCD conversion
     always @(min) begin
                         
         if (min < 10) begin 
