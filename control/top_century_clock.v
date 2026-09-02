@@ -1,4 +1,4 @@
-module control_controller (
+module top_century_clock (
     input  wire       clk_50MHz, // Xung nhịp hệ thống 
     input  wire       rst_n,     // Reset tích cực mức thấp
     
@@ -21,7 +21,6 @@ module control_controller (
     // 1. CLOCK DIVIDER (Tạo các nhịp xung cơ bản)
     wire tick_100hz;
     wire tick_1hz;
-    wire tick_1min;
     wire tick_blink;
     wire edit_enable;
 
@@ -31,8 +30,7 @@ module control_controller (
         .edit_enable (edit_enable),
         .tick_100hz  (tick_100hz),
         .tick_1hz    (tick_1hz),
-        .tick_blink  (tick_blink),
-        .tick_1min   (tick_1min)
+        .tick_blink  (tick_blink)
     );
 
     // 2. DISPLAY MODE 
@@ -102,7 +100,7 @@ module control_controller (
     wire [3:0] mon_ones, mon_tens;
     wire [3:0] yr_ones,  yr_tens, yr_hundreds, yr_thousands;
 
-counter_controller u_counter_ctrl (
+top_counter u_counter_ctrl (
         .clk_50MHz     (clk_50MHz),
         .rst_n         (rst_n),
         .tick_1hz      (tick_1hz),

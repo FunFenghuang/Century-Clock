@@ -3,7 +3,7 @@
 // mode = 1 -> DATE: DD-MM-YYYY (dig7..dig0)
 
 module digit_selector (
-    // Du lieu BCD tu counter_controller
+    // Du lieu BCD tu top_counter
     input [3:0] sec_ones, sec_tens,
     input [3:0] min_ones, min_tens,
     input [3:0] hr_ones,  hr_tens,

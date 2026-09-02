@@ -2,19 +2,19 @@
 // giai ma 7 doan, ap dung nhap nhay
 //
 // Luong du lieu:
-//   BCD (ones/tens) tu counter_controller
+//   BCD (ones/tens) tu top_counter
 //     -> digit_selector (chon theo mode)
 //       -> bcd_to_7seg x8 (giai ma 7 doan)
 //         -> blink_mask_applier (ap dung nhap nhay)
 //           -> SEG0..SEG7 (dau ra LED)
 
 module display_controller (
-    input wire       clk_50MHz,         // khong dung, khai bao de khop voi control_controller
-    input wire       rst_n,             // khong dung, khai bao de khop voi control_controller
+    input wire       clk_50MHz,         // khong dung, khai bao de khop voi top_century_clock
+    input wire       rst_n,             // khong dung, khai bao de khop voi top_century_clock
     input wire       mode,      // 0: DATE, 1: TIME
     input wire [7:0] blink_mask,        // mat na nhap nhay tu blink_selector
 
-    // Du lieu BCD tu counter_controller (KHONG THAY DOI)
+    // Du lieu BCD tu top_counter (KHONG THAY DOI)
     input wire [3:0] sec_ones, sec_tens,
     input wire [3:0] min_ones, min_tens,
     input wire [3:0] hr_ones,  hr_tens,

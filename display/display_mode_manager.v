@@ -5,7 +5,7 @@
 module display_mode_manager (
     input  wire clk_50MHz,
     input  wire rst_n,
-    input  wire tick_1min,       // xung 1 phut tu counter_controller (sig_1min_out)
+    input  wire tick_1min,       // xung 1 phut tu top_counter (sig_1min_out)
     output reg  mode     // 0: TIME, 1: DATE
 );
 
