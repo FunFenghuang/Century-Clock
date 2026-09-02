@@ -1,4 +1,4 @@
-module top_counter (
+module counter_controller (
     input clk_50MHz,
     input rst_n,
     input tick_1hz,             // 1Hz tick from clock divider, drives the clock in normal mode
